@@ -1,42 +1,50 @@
 // server.js
 
-console.log('--- Script starting ---'); // Debug: Script started
+console.log('--- Script starting ---');
 
 // Import necessary modules
 const express = require('express');
-// const nodemailer = require('nodemailer'); // Nodemailer is no longer needed
 const cors = require('cors');
-const mongoose = require('mongoose'); // Import Mongoose
-require('dotenv').config(); // For loading environment variables
+const mongoose = require('mongoose');
+require('dotenv').config(); // Load environment variables from .env file
 
-console.log('--- Modules imported ---'); // Debug: Modules loaded
-// console.log('EMAIL_USER from env:', process.env.EMAIL_USER); // Email not used
-// console.log('YOUR_RECEIVING_EMAIL from env:', process.env.YOUR_RECEIVING_EMAIL); // Email not used
+console.log('--- Modules imported ---');
 console.log('MONGODB_URI from env:', process.env.MONGODB_URI); // Debug: Check MongoDB URI
 
 // Initialize the Express application
 const app = express();
-const PORT = process.env.PORT || 3001;
+// Vercel provides the PORT environment variable
+const PORT = process.env.PORT || 3001; // Use Vercel's port or 3001 locally
 
-console.log('--- Express app initialized ---'); // Debug
+console.log('--- Express app initialized ---');
 
 // --- Middleware ---
+// Enable CORS - For production, restrict the origin
+// Example: app.use(cors({ origin: 'https://your-frontend-domain.com' }));
 app.use(cors());
+
+// Parse JSON request bodies
 app.use(express.json());
+// Parse URL-encoded request bodies
 app.use(express.urlencoded({ extended: true }));
 
-console.log('--- Middleware configured ---'); // Debug
+console.log('--- Middleware configured ---');
 
 // --- MongoDB Connection ---
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => {
-    console.log('--- Successfully connected to MongoDB ---');
-  })
-  .catch((err) => {
-    console.error('--- MongoDB connection error: ---', err);
-    // Optionally exit if DB connection is critical for the app to run
-    // process.exit(1);
-  });
+// Ensure MONGODB_URI is set in your environment variables (locally in .env, on Vercel in settings)
+if (!process.env.MONGODB_URI) {
+  console.error('FATAL ERROR: MONGODB_URI is not defined in environment variables.');
+  // process.exit(1); // Optionally exit if DB connection is critical
+} else {
+  mongoose.connect(process.env.MONGODB_URI)
+    .then(() => {
+      console.log('--- Successfully connected to MongoDB ---');
+    })
+    .catch((err) => {
+      console.error('--- MongoDB connection error: ---', err);
+      // process.exit(1); // Optionally exit
+    });
+}
 
 // --- Mongoose Schema and Model for Enquiries ---
 const enquirySchema = new mongoose.Schema({
@@ -68,40 +76,30 @@ const enquirySchema = new mongoose.Schema({
   },
 });
 
+// Mongoose automatically looks for the plural, lowercased version of the model name ('enquiries')
 const Enquiry = mongoose.model('Enquiry', enquirySchema);
 console.log('--- Mongoose Enquiry model created ---');
 
-// --- Nodemailer Transporter Setup (REMOVED) ---
-// let transporter;
-// try {
-//   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-//     console.warn('--- Email credentials (EMAIL_USER or EMAIL_PASS) not found in .env. Email sending will be disabled. ---');
-//   } else {
-//     transporter = nodemailer.createTransport({ // ... configuration ... });
-//     console.log('--- Nodemailer transporter created ---');
-//     transporter.verify((error, success) => { /* ... */ });
-//   }
-// } catch (err) {
-//   console.error('Error creating Nodemailer transporter:', err);
-// }
-
 
 // --- API Routes ---
+
+// Basic test route
 app.get('/api', (req, res) => {
   res.json({ message: 'Hello from the backend contact form API! (Database only)' });
 });
 
+// POST route to submit a new enquiry
 app.post('/api/send-enquiry', async (req, res) => {
-  console.log('--- Received POST to /api/send-enquiry ---'); // Debug
+  console.log('--- Received POST to /api/send-enquiry ---');
   const { name, email, subject, message } = req.body;
 
-  // --- 1. Validate Input (Basic) ---
+  // Basic validation (Mongoose schema validation is also applied on save)
   if (!name || !email || !subject || !message) {
-    console.log('Validation failed: Missing fields from request body'); // Debug
+    console.log('Validation failed: Missing fields from request body');
     return res.status(400).json({ success: false, message: 'All fields are required.' });
   }
 
-  // --- 2. Save to MongoDB ---
+  // Save to MongoDB
   try {
     const newEnquiry = new Enquiry({
       name,
@@ -112,38 +110,60 @@ app.post('/api/send-enquiry', async (req, res) => {
     const savedEnquiry = await newEnquiry.save();
     console.log('--- Enquiry saved to MongoDB: ---', savedEnquiry._id);
 
-    // --- 3. Email Sending Logic (REMOVED) ---
-    // if (!transporter) { /* ... */ }
-    // const mailOptions = { /* ... */ };
-    // const info = await transporter.sendMail(mailOptions);
-    // console.log('Email sent: ' + info.response);
-
-    res.status(200).json({
+    // Respond with success
+    res.status(201).json({ // 201 Created status code
         success: true,
-        message: 'Enquiry received and stored successfully!', // Updated message
+        message: 'Enquiry received and stored successfully!',
         enquiryId: savedEnquiry._id
     });
 
   } catch (error) {
     console.error('--- Error processing enquiry: ---', error);
-    if (error.name === 'ValidationError') { // Mongoose validation error
+    if (error.name === 'ValidationError') { // Handle Mongoose validation errors
       let errors = {};
       for (let field in error.errors) {
         errors[field] = error.errors[field].message;
       }
       return res.status(400).json({ success: false, message: 'Validation failed.', errors });
     }
-    // Generic server error for other issues (DB connection, etc.)
+    // Handle other potential errors (e.g., database connection issues)
     res.status(500).json({ success: false, message: 'Failed to store enquiry. Please try again later.' });
   }
 });
 
-// --- Start the server ---
-app.listen(PORT, () => {
-  console.log(`Backend server is running on http://localhost:${PORT}`);
-  if (mongoose.connection.readyState !== 1) {
-      console.warn('--- Warning: Server started, but MongoDB is not connected. DB operations will fail. Check MONGODB_URI and DB server. ---')
+// GET route to fetch all enquiries
+app.get('/api/enquiries', async (req, res) => {
+  console.log('--- Received GET to /api/enquiries ---');
+  try {
+    // Fetch all enquiries from the database, sort by newest first
+    const enquiries = await Enquiry.find().sort({ submittedAt: -1 });
+    res.status(200).json({
+      success: true,
+      count: enquiries.length,
+      data: enquiries
+    });
+  } catch (error) {
+    console.error('--- Error fetching enquiries: ---', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch enquiries.' });
   }
 });
 
-console.log('--- Script finished initial execution (server might be listening now) ---'); // Debug
+
+// --- Start the server (for local development only) ---
+
+// Only run app.listen if the server is run directly (e.g., `node server.js`)
+// and not when imported as a module by Vercel.
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Backend server is running locally on http://localhost:${PORT}`);
+    // Optional check after server starts listening
+    if (mongoose.connection.readyState !== 1) {
+        console.warn('--- Warning: Server started, but MongoDB may not be connected yet. Check connection status. ---')
+    }
+  });
+}
+
+console.log('--- Script finished initial execution ---');
+
+// Export the Express app for Vercel's serverless environment
+module.exports = app;
