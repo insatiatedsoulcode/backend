@@ -2,18 +2,18 @@
   "version": 2,
   "builds": [
     {
-      "src": "./server.js", // Your main backend entry file
+      "src": "./server.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
-      "src": "/api/(.*)", // Match requests starting with /api/
-      "dest": "server.js" // Route them to your server file
+      "src": "/api/(.*)",
+      "dest": "./server.js"
     },
     {
-      "src": "/(.*)", // Optional: Catch-all for other routes if needed
-      "dest": "server.js"
+      "src": "/(.*)",
+      "dest": "./server.js"
     }
   ]
 }
