@@ -27,7 +27,9 @@ const allowedOrigins = [
   'http://localhost:3000', // For your local frontend development
   'https://college-website-react-phi.vercel.app', // Your Vercel deployment domain for frontend
   'https://udaypratapcollege.com', // Your custom domain for the frontend
-  'http://udaypratapcollege.com' // Your custom domain (non-HTTPS, if applicable)
+  'http://udaypratapcollege.com', // Your custom domain (non-HTTPS, if applicable)
+  'https://www.udaypratapcollege.com', // Your custom domain WITH WWW for the frontend
+  'http://www.udaypratapcollege.com'  // Your custom domain WITH WWW (non-HTTPS, if applicable)
   // Add any other Vercel preview deployment domains if needed
 ];
 
