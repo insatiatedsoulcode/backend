@@ -2,18 +2,26 @@
 
 console.log('--- Script starting ---');
 
-// Import necessary modules
+// Import necessary modules (ensure each is imported only once)
 const express = require('express');
-// server.js
-
-// ... (other imports like express, mongoose, dotenv)
 const cors = require('cors');
-const express = require('express'); // Assuming express is already required
-const app = express(); // Assuming app is already initialized
+const mongoose = require('mongoose');
+require('dotenv').config(); // Load environment variables from .env file
 
-// ... (other middleware like app.use(express.json()), etc.)
+// Initialize the Express application (ensure app is initialized only once)
+const app = express();
 
-// --- Updated CORS Configuration ---
+console.log('--- Modules imported ---');
+console.log('MONGODB_URI from env:', process.env.MONGODB_URI); // Debug: Check MongoDB URI
+
+// Vercel provides the PORT environment variable
+const PORT = process.env.PORT || 3001; // Use Vercel's port or 3001 locally
+
+console.log('--- Express app initialized ---');
+
+// --- Middleware ---
+
+// Updated CORS Configuration (place this before other middleware that depends on app)
 // Define the list of allowed origins (your frontend domains)
 const allowedOrigins = [
   'http://localhost:3000', // For your local frontend development
@@ -34,26 +42,6 @@ app.use(cors({
     return callback(null, true); // Allow if origin is in the list
   }
 }));
-
-// ... (the rest of your server.js code: MongoDB connection, Mongoose schemas, API routes, app.listen for local, module.exports for Vercel)
-
-const mongoose = require('mongoose');
-require('dotenv').config(); // Load environment variables from .env file
-
-console.log('--- Modules imported ---');
-console.log('MONGODB_URI from env:', process.env.MONGODB_URI); // Debug: Check MongoDB URI
-
-// Initialize the Express application
-const app = express();
-// Vercel provides the PORT environment variable
-const PORT = process.env.PORT || 3001; // Use Vercel's port or 3001 locally
-
-console.log('--- Express app initialized ---');
-
-// --- Middleware ---
-// Enable CORS - For production, restrict the origin
-// Example: app.use(cors({ origin: 'https://your-frontend-domain.com' }));
-app.use(cors());
 
 // Parse JSON request bodies
 app.use(express.json());
