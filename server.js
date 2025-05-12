@@ -4,7 +4,39 @@ console.log('--- Script starting ---');
 
 // Import necessary modules
 const express = require('express');
+// server.js
+
+// ... (other imports like express, mongoose, dotenv)
 const cors = require('cors');
+const express = require('express'); // Assuming express is already required
+const app = express(); // Assuming app is already initialized
+
+// ... (other middleware like app.use(express.json()), etc.)
+
+// --- Updated CORS Configuration ---
+// Define the list of allowed origins (your frontend domains)
+const allowedOrigins = [
+  'http://localhost:3000', // For your local frontend development
+  'https://college-website-react-phi.vercel.app' // YOUR DEPLOYED FRONTEND URL - REPLACE THIS!
+  // Add any other domains/subdomains Vercel assigns to your frontend if needed
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests during testing)
+    // For stricter production, you might want to remove this or make it more conditional
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = `The CORS policy for this site does not allow access from the Origin: ${origin}`;
+      return callback(new Error(msg), false); // Disallow if origin is not in the list
+    }
+    return callback(null, true); // Allow if origin is in the list
+  }
+}));
+
+// ... (the rest of your server.js code: MongoDB connection, Mongoose schemas, API routes, app.listen for local, module.exports for Vercel)
+
 const mongoose = require('mongoose');
 require('dotenv').config(); // Load environment variables from .env file
 
