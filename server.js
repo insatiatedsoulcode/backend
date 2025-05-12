@@ -25,8 +25,10 @@ console.log('--- Express app initialized ---');
 // Define the list of allowed origins (your frontend domains)
 const allowedOrigins = [
   'http://localhost:3000', // For your local frontend development
-  'https://udaypratapcollege.com' // YOUR DEPLOYED FRONTEND URL - REPLACE THIS!
-  // Add any other domains/subdomains Vercel assigns to your frontend if needed
+  'https://college-website-react-phi.vercel.app', // Your Vercel deployment domain for frontend
+  'https://udaypratapcollege.com', // Your custom domain for the frontend
+  'http://udaypratapcollege.com' // Your custom domain (non-HTTPS, if applicable)
+  // Add any other Vercel preview deployment domains if needed
 ];
 
 app.use(cors({
