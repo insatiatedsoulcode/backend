@@ -45,20 +45,19 @@ const corsOptions = {
     }
   },
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
-  allowedHeaders: "Content-Type, Authorization, X-Requested-With, Accept", // Added Accept
+  allowedHeaders: "Content-Type, Authorization, X-Requested-With, Accept",
   credentials: true,
   optionsSuccessStatus: 204 // Standard for successful preflight
 };
 
-// IMPORTANT: Handle OPTIONS requests first, especially for specific routes if needed,
-// then apply global CORS, then other middleware.
-
-// Explicitly handle ALL OPTIONS requests for all routes using the defined corsOptions.
-// This should respond to preflight requests correctly before they hit other route handlers.
-app.options('*', cors(corsOptions)); // Handles preflight requests for all routes
-
-// Apply CORS middleware globally for all other requests (GET, POST, etc.)
+// Apply CORS middleware globally. This should handle preflight OPTIONS requests
+// and set CORS headers for all other requests (GET, POST, etc.).
+// Ensure this is placed before your routes.
 app.use(cors(corsOptions));
+
+// REMOVED: app.options('*', cors(corsOptions));
+// The global app.use(cors(corsOptions)) should handle preflight requests.
+// The explicit app.options('*', ...) might have been causing the path-to-regexp error.
 
 // Parse JSON request bodies
 app.use(express.json());
@@ -70,6 +69,7 @@ console.log('--- Middleware configured ---');
 // --- MongoDB Connection ---
 if (!process.env.MONGODB_URI) {
   console.error('FATAL ERROR: MONGODB_URI is not defined in environment variables.');
+  // Consider process.exit(1) if DB is critical for startup
 } else {
   mongoose.connect(process.env.MONGODB_URI)
     .then(() => {
@@ -77,6 +77,7 @@ if (!process.env.MONGODB_URI) {
     })
     .catch((err) => {
       console.error('--- MongoDB connection error: ---', err);
+      // Consider process.exit(1)
     });
 }
 
@@ -157,7 +158,7 @@ app.get('/api/enquiries', async (req, res) => {
 // --- Start the server (for local development or if Render uses `node server.js`) ---
 if (require.main === module) {
   app.listen(PORT, () => {
-    console.log(`Backend server is running on port ${PORT}`); // Changed "locally"
+    console.log(`Backend server is running on port ${PORT}`);
     if (mongoose.connection.readyState !== 1) {
       console.warn('--- Warning: Server started, but MongoDB may not be connected yet. Check connection status. ---')
     } else {
@@ -168,6 +169,5 @@ if (require.main === module) {
 
 console.log('--- Script finished initial execution ---');
 
-// Export the Express app (Render might use this if not using the start script directly,
-// but with a `node server.js` start command, the app.listen above is key)
+// Export the Express app
 module.exports = app;
