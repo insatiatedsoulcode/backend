@@ -25,6 +25,7 @@ console.log('--- Express app initialized ---');
 const allowedOrigins = [
   'http://localhost:3000', // For your local frontend development
   'https://college-website-react-phi.vercel.app', // Your Vercel deployment for frontend
+  'https://college-website-react-bwa0.onrender.com',
   'https://udaypratapcollege.com', // Your custom domain
   'http://udaypratapcollege.com', // Custom domain (non-HTTPS, if used)
   'https://www.udaypratapcollege.com', // Custom domain with WWW
