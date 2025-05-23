@@ -6,6 +6,7 @@ console.log('--- Script starting ---');
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const nodemailer = require('nodemailer'); // <<<< ADDED: Import Nodemailer
 require('dotenv').config(); // Load environment variables from .env file
 
 // Initialize the Express application
@@ -13,8 +14,13 @@ const app = express();
 
 console.log('--- Modules imported ---');
 console.log('MONGODB_URI from env:', process.env.MONGODB_URI);
+// For email configuration (ensure these are in your .env file and Render/Vercel environment variables)
+console.log('EMAIL_USER from env:', process.env.EMAIL_USER ? 'Loaded' : 'NOT LOADED');
+console.log('EMAIL_PASS from env:', process.env.EMAIL_PASS ? 'Loaded (status)' : 'NOT LOADED'); // Don't log the actual password
+console.log('COLLEGE_EMAIL_RECEIVER from env:', process.env.COLLEGE_EMAIL_RECEIVER ? 'Loaded' : 'NOT LOADED');
 
-// Render provides the PORT environment variable.
+
+// Render/Vercel provides the PORT environment variable.
 const PORT = process.env.PORT || 3001;
 
 console.log('--- Express app initialized ---');
@@ -23,11 +29,11 @@ console.log('--- Express app initialized ---');
 
 // Define the list of allowed origins
 const allowedOrigins = [
-  'http://localhost:3000', // For your local frontend development
+  'http://localhost:3000',  // For your local frontend development
   'https://college-website-react-phi.vercel.app', // Your Vercel deployment for frontend
-  'https://college-website-react-bwa0.onrender.com',
+  'https://college-website-react-bwa0.onrender.com', // Your Render frontend URL
   'https://udaypratapcollege.com', // Your custom domain
-  'http://udaypratapcollege.com', // Custom domain (non-HTTPS, if used)
+  'http://udaypratapcollege.com', // Custom domain (non-HTTPS, if used - ensure HTTPS is primary)
   'https://www.udaypratapcollege.com', // Custom domain with WWW
   'http://www.udaypratapcollege.com'  // Custom domain with WWW (non-HTTPS, if used)
   // Add any other Vercel/Render preview deployment domains if needed
@@ -51,14 +57,8 @@ const corsOptions = {
   optionsSuccessStatus: 204 // Standard for successful preflight
 };
 
-// Apply CORS middleware globally. This should handle preflight OPTIONS requests
-// and set CORS headers for all other requests (GET, POST, etc.).
-// Ensure this is placed before your routes.
+// Apply CORS middleware globally.
 app.use(cors(corsOptions));
-
-// REMOVED: app.options('*', cors(corsOptions));
-// The global app.use(cors(corsOptions)) should handle preflight requests.
-// The explicit app.options('*', ...) might have been causing the path-to-regexp error.
 
 // Parse JSON request bodies
 app.use(express.json());
@@ -67,10 +67,37 @@ app.use(express.urlencoded({ extended: true }));
 
 console.log('--- Middleware configured ---');
 
+// --- Nodemailer Transporter Setup ---
+let transporter;
+if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+    transporter = nodemailer.createTransport({
+        service: 'gmail', // Or your email provider e.g., 'Outlook365', or use SMTP settings
+        auth: {
+            user: process.env.EMAIL_USER, // Your email address from .env
+            pass: process.env.EMAIL_PASS, // Your email password or app password from .env
+        },
+        // Optional: Add TLS options for some environments if needed
+        // tls: {
+        //   rejectUnauthorized: false // Use with caution, only if necessary for specific environments
+        // }
+    });
+    console.log('--- Nodemailer transporter configured ---');
+
+    transporter.verify(function(error, success) { // Verify transporter configuration
+        if (error) {
+            console.error('--- Nodemailer transporter verification error: ---', error);
+        } else {
+            console.log('--- Nodemailer transporter is ready to send emails ---');
+        }
+    });
+
+} else {
+    console.warn('--- Nodemailer transporter NOT configured: EMAIL_USER or EMAIL_PASS missing. Emails will not be sent. ---');
+}
+
 // --- MongoDB Connection ---
 if (!process.env.MONGODB_URI) {
   console.error('FATAL ERROR: MONGODB_URI is not defined in environment variables.');
-  // Consider process.exit(1) if DB is critical for startup
 } else {
   mongoose.connect(process.env.MONGODB_URI)
     .then(() => {
@@ -78,7 +105,6 @@ if (!process.env.MONGODB_URI) {
     })
     .catch((err) => {
       console.error('--- MongoDB connection error: ---', err);
-      // Consider process.exit(1)
     });
 }
 
@@ -97,7 +123,6 @@ console.log('--- Mongoose Enquiry model created ---');
 
 // --- API Routes ---
 
-// Root route for health checks (good for Render)
 app.get('/', (req, res) => {
   res.status(200).json({ message: 'Backend API is healthy and running!' });
 });
@@ -122,9 +147,43 @@ app.post('/api/send-enquiry', async (req, res) => {
     const savedEnquiry = await newEnquiry.save();
     console.log('--- Enquiry saved to MongoDB: ---', savedEnquiry._id);
 
+    // Send email notification
+    if (transporter && process.env.COLLEGE_EMAIL_RECEIVER) {
+      const mailOptions = {
+        from: `"Website Inquiry" <${process.env.EMAIL_USER}>`,
+        to: process.env.COLLEGE_EMAIL_RECEIVER,
+        replyTo: email, // So replies go to the person who made the enquiry
+        subject: `New Website Inquiry: ${subject}`,
+        html: `
+          <p>You have received a new inquiry from the college website:</p>
+          <hr>
+          <p><strong>Name:</strong> ${name}</p>
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Subject:</strong> ${subject}</p>
+          <p><strong>Message:</strong></p>
+          <div style="padding: 10px; border: 1px solid #eee; background: #f9f9f9;">
+            ${message.replace(/\n/g, '<br>')}
+          </div>
+          <hr>
+          <p><em>Enquiry ID: ${savedEnquiry._id}</em></p>
+          <p><em>Submitted At: ${new Date(savedEnquiry.submittedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</em></p>
+        `,
+      };
+
+      try {
+        await transporter.sendMail(mailOptions);
+        console.log('--- Email notification sent successfully to ---', process.env.COLLEGE_EMAIL_RECEIVER);
+      } catch (emailError) {
+        console.error('--- Error sending email notification: ---', emailError);
+        // Log error but don't make the API request fail because of email failure
+      }
+    } else {
+      console.warn('--- Email notification not sent: Transporter or COLLEGE_EMAIL_RECEIVER not configured. ---');
+    }
+
     res.status(201).json({
       success: true,
-      message: 'Enquiry received and stored successfully!',
+      message: 'Enquiry received and stored successfully! Notification email attempted.',
       enquiryId: savedEnquiry._id
     });
 
