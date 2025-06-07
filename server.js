@@ -1,50 +1,37 @@
 // server.js
-// Simplified backend to only save inquiries to MongoDB.
+// Backend for Inquiries, Applications, and Admin Authentication
 
 console.log('--- Script starting ---');
 
-// Import necessary modules
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
-require('dotenv').config(); // Load environment variables from .env file
+const bcrypt = require('bcryptjs');
+require('dotenv').config();
 
-// Initialize the Express application
 const app = express();
+const PORT = process.env.PORT || 3001;
 
 console.log('--- Modules imported ---');
 console.log('MONGODB_URI from env:', process.env.MONGODB_URI ? 'Loaded' : 'NOT LOADED');
 
-// Render provides the PORT environment variable.
-const PORT = process.env.PORT || 3001;
-
-console.log('--- Express app initialized ---');
-
 // --- Middleware ---
-
-// Define the list of allowed origins
 const allowedOrigins = [
-  'http://localhost:3000',                            // For your local frontend development
-  'https://udaypratapcollege.com',                     // Your custom domain
-  'https://www.udaypratapcollege.com',               // Your custom domain with WWW
-  'https://udaypratapcollege-website.onrender.com',    // Your Render frontend URL
-  // Add any other deployment preview URLs if needed
+  'http://localhost:3000',
+  'https://udaypratapcollege.com',
+  'https://www.udaypratapcollege.com',
+  'https://udaypratapcollege-website.onrender.com',
 ];
 
-// CORS Configuration Options
 const corsOptions = {
   origin: function (origin, callback) {
-    console.log(`CORS Check: Request origin: ${origin}`);
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      console.log(`CORS Check: Origin allowed: ${origin || 'No Origin (Allowed)'}`);
       callback(null, true);
     } else {
-      console.error(`CORS Check: Origin NOT allowed: ${origin}`);
       callback(new Error(`Origin ${origin} not allowed by CORS policy.`));
     }
   },
   methods: "GET,POST,OPTIONS",
-  allowedHeaders: "Content-Type, Authorization",
 };
 
 app.use(cors(corsOptions));
@@ -53,100 +40,107 @@ app.use(express.urlencoded({ extended: true }));
 
 console.log('--- Middleware configured ---');
 
-
 // --- MongoDB Connection ---
-if (!process.env.MONGODB_URI) {
-  console.error('FATAL ERROR: MONGODB_URI is not defined in environment variables.');
-  // In a real production app, you might want to exit if the DB connection string is missing
-  // process.exit(1); 
-} else {
+if (process.env.MONGODB_URI) {
   mongoose.connect(process.env.MONGODB_URI)
-    .then(() => {
-      console.log('--- Successfully connected to MongoDB ---');
-    })
-    .catch((err) => {
-      console.error('--- MongoDB connection error: ---', err);
-    });
+    .then(() => console.log('--- Successfully connected to MongoDB ---'))
+    .catch((err) => console.error('--- MongoDB connection error: ---', err));
+} else {
+  console.error('FATAL ERROR: MONGODB_URI is not defined in environment variables.');
 }
 
-// --- Mongoose Schema and Model for Enquiries ---
-const enquirySchema = new mongoose.Schema({
-  name: { type: String, required: [true, 'Name is required'], trim: true },
-  email: { type: String, required: [true, 'Email is required'], trim: true, lowercase: true, match: [/\S+@\S+\.\S+/, 'Please use a valid email address.'] },
-  subject: { type: String, required: [true, 'Subject is required'], trim: true },
-  message: { type: String, required: [true, 'Message is required'], trim: true },
-  submittedAt: { type: Date, default: Date.now },
-});
+// --- Mongoose Schemas and Models ---
+const enquirySchema = new mongoose.Schema({ name: { type: String, required: true }, email: { type: String, required: true }, subject: { type: String, required: true }, message: { type: String, required: true }, submittedAt: { type: Date, default: Date.now } });
+const Enquiry = mongoose.models.Enquiry || mongoose.model('Enquiry', enquirySchema);
 
-const Enquiry = mongoose.model('Enquiry', enquirySchema);
-console.log('--- Mongoose Enquiry model created ---');
+const applicationSchema = new mongoose.Schema({ fullName: { type: String, required: true }, dob: { type: String, required: true }, gender: { type: String, required: true }, parentName: { type: String, required: true }, email: { type: String, required: true, lowercase: true }, phone: { type: String, required: true }, fullAddress: { type: String, required: true }, tenthBoard: { type: String, required: true }, tenthPercentage: { type: String, required: true }, twelfthBoard: { type: String, required: true }, twelfthPercentage: { type: String, required: true }, programApplyingFor: { type: String, required: true }, submittedAt: { type: Date, default: Date.now } });
+const Application = mongoose.models.Application || mongoose.model('Application', applicationSchema);
+
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true, lowercase: true },
+  password: { type: String, required: true },
+  role: { type: String, enum: ['student', 'instructor', 'admin'], default: 'admin' },
+});
+userSchema.pre('save', async function(next) { if (this.isModified('password')) { this.password = await bcrypt.hash(this.password, 10) } next(); });
+userSchema.methods.comparePassword = function(candidatePassword) { return bcrypt.compare(candidatePassword, this.password); };
+const User = mongoose.models.User || mongoose.model('User', userSchema);
+console.log('--- Mongoose models configured ---');
 
 
 // --- API Routes ---
+app.get('/', (req, res) => res.status(200).json({ message: 'Uday Pratap College API is running.' }));
 
-app.get('/', (req, res) => {
-  res.status(200).json({ message: 'Uday Pratap College Enquiry API is running.' });
-});
-
-// POST route to submit a new enquiry
-app.post('/api/send-enquiry', async (req, res) => {
-  console.log('--- Received POST to /api/send-enquiry ---');
-  console.log('Request Body:', req.body);
-  const { name, email, subject, message } = req.body;
-
-  if (!name || !email || !subject || !message) {
-    console.log('Validation failed: Missing fields from request body');
-    return res.status(400).json({ success: false, message: 'All fields are required.' });
+// --- LOGIN ROUTE ---
+app.post('/api/auth/login', async (req, res) => {
+  console.log('--- Received POST to /api/auth/login ---');
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ success: false, message: 'Email and password are required.' });
   }
 
   try {
-    const newEnquiry = new Enquiry({ name, email, subject, message });
-    const savedEnquiry = await newEnquiry.save();
-    console.log('--- Enquiry saved to MongoDB. ID: ---', savedEnquiry._id);
-
-    res.status(201).json({
-      success: true,
-      message: 'Thank you for your inquiry! It has been received successfully.',
-      enquiryId: savedEnquiry._id
-    });
-
-  } catch (error) {
-    console.error('--- Error processing enquiry: ---', error);
-    if (error.name === 'ValidationError') {
-      const errors = {};
-      for (const field in error.errors) {
-        errors[field] = error.errors[field].message;
-      }
-      return res.status(400).json({ success: false, message: 'Please correct the errors and try again.', errors });
+    console.time('Database User Query');
+    const user = await User.findOne({ email: email.toLowerCase(), role: 'admin' });
+    console.timeEnd('Database User Query');
+    
+    if (!user) {
+      console.log(`Login failed: No admin user found for email ${email}`);
+      return res.status(401).json({ success: false, message: 'Invalid credentials.' });
     }
-    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again later.' });
+
+    console.log(`User found in DB. Now comparing password...`);
+    
+    console.time('Password Comparison');
+    const isMatch = await user.comparePassword(password);
+    console.timeEnd('Password Comparison');
+
+    if (!isMatch) {
+      console.log(`Login failed: Password does not match for email ${email}`);
+      return res.status(401).json({ success: false, message: 'Invalid credentials.' });
+    }
+
+    console.log(`Login successful for user: ${email}`);
+    
+    const userPayload = { id: user._id, name: user.name, email: user.email, role: user.role };
+    res.status(200).json({ success: true, user: userPayload });
+
+  } catch (error) {
+    console.error('Server error during login:', error);
+    res.status(500).json({ success: false, message: 'Server error during login.' });
   }
 });
 
-// GET route to view all enquiries (optional, can be protected later)
-app.get('/api/enquiries', async (req, res) => {
-  console.log('--- Received GET to /api/enquiries ---');
-  try {
-    const enquiries = await Enquiry.find().sort({ submittedAt: -1 });
-    res.status(200).json({
-      success: true,
-      count: enquiries.length,
-      data: enquiries
-    });
-  } catch (error) {
-    console.error('--- Error fetching enquiries: ---', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch enquiries.' });
-  }
+// --- NEW: FETCH ALL INQUIRIES ---
+app.get('/api/inquiries', async (req, res) => {
+    console.log('--- Received GET request for /api/inquiries ---');
+    try {
+        const inquiries = await Enquiry.find({}).sort({ submittedAt: -1 }); // Sort by most recent
+        res.status(200).json({ success: true, data: inquiries });
+    } catch (error) {
+        console.error('Server error fetching inquiries:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch inquiries.' });
+    }
 });
+
+// --- NEW: FETCH ALL APPLICATIONS ---
+app.get('/api/applications', async (req, res) => {
+    console.log('--- Received GET request for /api/applications ---');
+    try {
+        const applications = await Application.find({}).sort({ submittedAt: -1 }); // Sort by most recent
+        res.status(200).json({ success: true, data: applications });
+    } catch (error) {
+        console.error('Server error fetching applications:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch applications.' });
+    }
+});
+
+
+// --- VVV TEMPORARY ADMIN REGISTRATION ROUTE VVV ---
+// IMPORTANT: Use this route only once to create your admin, then comment it out or delete it for security.
+
 
 // --- Start the server ---
 app.listen(PORT, () => {
   console.log(`Backend server is running on port ${PORT}`);
-  if (mongoose.connection.readyState === 1) {
-    console.log('--- Server started and MongoDB is connected. ---');
-  }
 });
-
-console.log('--- Script finished initial execution ---');
-
-module.exports = app;
