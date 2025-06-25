@@ -1,0 +1,191 @@
+Week 1: Foundation Rebuilding + Setup
+Goal: Brush up basics, set up project repo
+Time: 2 hrs/day x 5–6 days
+
+Task	Role Focus	Tools/Topics
+Refactor your dissertation into a structured project	Both	Outline problem → approach → results
+Set up GitHub repository for your credit scoring project	Both	Git, Markdown, README
+Refresh Excel, SQL basics (joins, aggregations)	BA	Excel, MySQL/PostgreSQL
+Setup Jupyter Notebook or VS Code with Python environment	DS	Anaconda, pandas, numpy
+
+🗓️ Week 2: Data Cleaning & Exploration
+Goal: Load and explore your dataset end-to-end
+
+Task	Role Focus	Tools
+Load the credit scoring dataset from dissertation	Both	Python (pandas), Excel
+Perform EDA (nulls, types, distributions, outliers)	DS	pandas, matplotlib, seaborn
+Create Power BI or Excel dashboard from raw data	BA	Power BI or Excel pivot charts
+Document key variables and KPIs	Both	README, Notion/Docs
+
+🗓️ Week 3: Business Value Modeling
+Goal: Quantify business impact + translate into stakeholder view
+
+Task	Role Focus	Tools
+Identify 3–5 KPIs used in credit decisions (e.g., approval rate, default rate)	BA	Excel/Power BI
+Create visuals for “Before AI vs After AI” results	BA	Power BI, Canva
+Implement ML model (Logistic Regression, Decision Tree)	DS	scikit-learn, Jupyter
+Use classification metrics (AUC, confusion matrix)	DS	sklearn.metrics
+
+🗓️ Week 4: Ethical + GRC + Reporting
+Goal: Practice storytelling & ethics alignment (strong for both roles)
+
+Task	Role Focus	Deliverables
+Summarize AI bias, transparency, fairness from your dissertation	Both	Interview-ready notes
+Write a 5-slide stakeholder summary presentation	BA	PowerPoint
+Write a blog post or LinkedIn article on your project	Both	Medium/LinkedIn
+Train another model (e.g., Random Forest) and compare with baseline	DS	Notebook update
+
+🗓️ Week 5: Portfolio + Mock Interview Practice
+Goal: Get job-search ready
+
+Task	Role Focus	Platforms
+Finalize GitHub repo with README, code, and visuals	Both	GitHub
+Create a short video walkthrough or slide deck	Both	Loom or PPT
+Practice BA interview Qs (case studies, stakeholder mgmt)	BA	Prepfully, Glassdoor Qs
+Practice DS interview Qs (EDA, ML, statistics, SQL)	DS	LeetCode, StrataScratch, Interview Query
+
+🗓️ Week 6: Resume, Applications, & Live Projects
+Goal: Final polish & start applying
+
+Task	Role Focus	Resources
+Update resume with dissertation project & tools used	Both	Tailor to JD
+Apply to 10–15 relevant roles (Entry/Mid-level BA, DS)	Both	LinkedIn, Naukri, Wellfound
+Continue 1 Kaggle or Power BI challenge for practice	DS/BA	kaggle.com, community.powerbi.com
+
+📂 Project Deliverables by Week 6
+You’ll have:
+
+📁 1 polished GitHub repo
+
+📊 1 dashboard (Power BI/Tableau or Excel)
+
+📄 1 blog post or project write-up
+
+📽️ 1 project walkthrough (optional but impressive)
+
+📄 Updated Resume + LinkedIn
+
+✅ Prepared for common BA/DS interview questions
+
+Would you like a Notion template, Excel planner, or Google Sheet tracker to manage this weekly plan?
+
+
+
+
+
+
+
+
+
+You said:
+lets start with week 1 tasks
+
+
+ChatGPT said:
+Perfect. Let’s begin Week 1 with a structured checklist and simple actionable tasks to get you moving.
+
+✅ Week 1: Foundation Rebuilding + Setup
+Goal: Revisit fundamentals, set up your environment, and create the structure for your credit scoring project portfolio.
+
+🔧 1. Project Outline & Breakdown (Day 1)
+Create a 5-part outline of your dissertation project:
+
+Section	What to Fill
+Problem Statement	Why credit scoring needed AI improvements
+Data Used	Dataset name, number of rows, key variables
+Methods	Models/techniques used (e.g., logistic regression, decision trees)
+Insights	Main findings (e.g., reduced defaults by 10%, ethical gaps)
+Impact	How it helps business (risk management, approval rate, fairness)
+
+✍️ Tool: Use Google Docs or Notion to start this outline.
+
+🗂️ 2. Set Up Your GitHub Repository (Day 2)
+Create a GitHub repo like this:
+
+bash
+Copy
+Edit
+Repo name: ai-credit-scoring-project
+Folder Structure:
+graphql
+Copy
+Edit
+ai-credit-scoring-project/
+├── data/                     # Raw or cleaned datasets
+├── notebooks/                # Jupyter notebooks
+├── visuals/                  # Any charts or images
+├── reports/                  # Project summary PDFs or slides
+└── README.md                 # Project overview
+In README.md, start with:
+
+markdown
+Copy
+Edit
+# AI in Credit Scoring: Business and Ethical Analysis
+This project explores how AI-based credit scoring models improve risk prediction, efficiency, and inclusion, using real-world data and ethical frameworks.
+
+## Table of Contents
+1. Problem Statement
+2. Data Summary
+3. Methodology
+4. Business Insights
+5. Ethical Concerns
+🧪 3. Brush Up on Excel + SQL Basics (Day 3 & 4)
+Excel (1 hour):
+Pivot tables
+
+VLOOKUP/XLOOKUP
+
+IF, AND, OR logic
+
+Conditional formatting
+
+Charts
+
+▶ Resource: ExcelJet Practice Exercises
+
+SQL (1 hour):
+Practice:
+
+SELECT, WHERE, GROUP BY, JOIN
+
+Window functions: ROW_NUMBER(), RANK(), PARTITION BY
+
+▶ Platform: StrataScratch or SQLZoo
+
+💻 4. Setup Python + Jupyter Notebook Environment (Day 5)
+If not already installed:
+Install Anaconda (recommended)
+
+Create a new environment:
+
+bash
+Copy
+Edit
+conda create -n credit_project python=3.10
+conda activate credit_project
+conda install pandas numpy matplotlib seaborn scikit-learn jupyter
+Launch:
+
+bash
+Copy
+Edit
+jupyter notebook
+Optional Tools:
+Install VS Code or JupyterLab for cleaner IDE experience
+
+📌 Summary Checklist for Week 1
+Task	Done?
+Write project outline	☐
+Set up GitHub repo	☐
+Brush up Excel basics	☐
+Practice SQL queries	☐
+Set up Python environment	☐
+
+Would you like:
+
+A Notion template to track these?
+
+Help starting your README.md or outline content?
+
+A sample dataset to begin coding right away?
