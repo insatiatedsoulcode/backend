@@ -17,7 +17,9 @@ const PORT = process.env.PORT || 3001;
 console.log('--- Express app initialized ---');
 
 const allowedOrigins = [
-  'http://localhost:3000'
+  'http://localhost:3000',
+  'https://www.udaypratapcollege.com',
+  'https://udaypratapcollege.com'
 ];
 
 const corsOptions = {
@@ -135,7 +137,7 @@ app.post('/api/send-enquiry', async (req, res) => {
 });
 
 // ✅ Application endpoint
-app.post('/api/submit-application', async (req, res) => {
+app.post('/api/applications', async (req, res) => {
   console.log('📨 POST /api/submit-application:', req.body);
 
   const {
